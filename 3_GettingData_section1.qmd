@@ -1,0 +1,248 @@
+---
+title: "Get Data"
+author: "&copy;  2023 Vishal Lala"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-float: true
+    theme: cosmo
+    highlight-style: ally
+    df-print: paged
+    embed-resources: true
+  docx:
+    toc: true
+    toc-depth: 3
+    highlight-syle: ally
+  pdf:
+    toc: true
+    toc-depth: 3
+    documentclass: scrartcl
+    papersize: letter
+    highlight-syle: ally
+execute:
+  cache: true
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+# Getting Data
+
+1.  Download
+
+2.  read
+
+3.  API
+
+4.  Scrape
+
+## Download
+
+Simplest way to get data is to get data manually (e.g., web download,
+email attachment, disk) and then view it.
+
+### NYPD Data
+
+NYPD Personnel Demographics data have been compiled on [Open
+NYC](https://data.cityofnewyork.us/Public-Safety/NYPD-Personnel-Demographics/5vr7-5fki/data).
+Download manually and then read or read directly from website.
+
+```{r}
+nypd = read.csv('https://data.cityofnewyork.us/api/views/5vr7-5fki/rows.csv?accessType=DOWNLOAD')
+```
+
+#### Explore the data
+
+What are the names and types of variables included in this dataset?
+
+```{r}
+table(nypd$YearsOnJob..bins.)
+```
+
+How many rows and columns are in this dataset?
+
+```{r}
+
+```
+
+Are the variables sex and gender the same?
+```{r}
+
+```
+
+
+Are women well-represented on the NYPD? Specifically, what percent of NYPD officers are female?
+
+```{r}
+
+```
+
+What is the proportion of officers by race?
+```{r}
+
+```
+Let us examine the trend in gender hiring based on experience (i.e., years on the job). To make the results easier to examine, we will put the data in a wide format using library(tidyr) function pivot_wider(). 
+```{r}
+library(tidyr)
+nypd |>
+  group_by(YearsOnJob..bins., Gender)|>
+  summarize(n = n())|>
+  pivot_wider(names_from = Gender,values_from = n)
+```
+
+
+### Beach Water Quality
+
+Open NYC regularly updates quality of water in New York city beaches and
+posts them to [NYC Open Data](https://data.cityofnewyork.us/Health/DOHMH-Beach-Water-Quality-Data/2xir-kwzz).
+Data can be downloaded manually and then read. Or the steps can be automated by directly reading from the site.
+
+```{r}
+water_quality = read.csv("C:/Users/vlala/Downloads/DOHMH_Beach_Water_Quality_Data.csv")
+str(water_quality)
+```
+
+What is the highest level of Enterocci recorded?
+
+```{r}
+
+```
+
+Which are the Ten Worst Beaches based on levels of Enterococci?
+
+```{r}
+
+```
+Which are the Ten Worst Beaches based on levels of Enterococci?
+```{r}
+
+```
+
+
+### Baby Names
+
+Social Security Administration shares data on names of all children born in the US. Download zip file containing State Specific names from (SSA)[https://www.ssa.gov/oact/babynames/limits.html] and extract names for New York, ny.txt.
+
+```{r}
+babies = read.csv('https://raw.githubusercontent.com/pseudorational/LubinAnalyticsBootcamp/main/NY.TXT', 
+         header=F, 
+         col.names = c('state','gender','year','name','n'))
+head(babies)
+```
+
+Next, identify top 25 boy names since 2010
+
+```{r}
+library(dplyr); library(ggplot2); library(forcats)
+boys = 
+  babies%>%
+  filter(year>2010)%>%
+  group_by(gender, name)%>%
+  summarize(total_n = sum(n))%>%
+  mutate(rank = as.integer(rank(x = desc(total_n),ties.method = 'first')))%>%
+  ungroup()%>%
+  filter(rank<=25, gender=='M')%>%
+  select(rank, name, total_n)%>%
+  arrange(rank)%>%
+  ggplot(aes(x=forcats::fct_reorder(name,total_n),y=total_n, fill=desc(total_n)))+
+  geom_col()+
+  coord_flip()+
+  guides(fill=F)+
+  ylab('')+xlab('Number Since 2010')+
+  ggtitle('Top 25 Boy Names in New York since 2010')
+boys
+```
+
+Next, identify top 25 girl names since 2010
+
+```{r}
+girls = 
+  babies%>%
+  filter(year>2010)%>%
+  group_by(gender, name)%>%
+  summarize(total_n = sum(n))%>%
+  mutate(rank = as.integer(rank(x = desc(total_n),ties.method = 'first')))%>%
+  ungroup()%>%
+  filter(rank<=25, gender=='F')%>%
+  select(rank, name, total_n)%>%
+  arrange(rank)%>%
+  ggplot(aes(x=forcats::fct_reorder(name,total_n),y=total_n, fill=desc(total_n)))+
+  geom_col()+
+  coord_flip()+
+  guides(fill=F)+
+  ylab('')+xlab('Number Since 2010')+
+  ggtitle('Top 25 Girl Names in New York since 2010')
+girls
+```
+
+### Dog Names
+
+New York City has published a list of dog names which can be downloaded
+as a csv file from (Open NYC)[https://data.cityofnewyork.us/Health/NYC-Dog-Licensing-Dataset/nu7n-tubp/data]
+
+```{r}
+dogs = read.csv('https://data.cityofnewyork.us/api/views/nu7n-tubp/rows.csv?accessType=DOWNLOAD')
+str(dogs)
+```
+
+List the top 15 Male Dog names since 2010
+
+```{r}
+dogs_boy = 
+  dogs%>%
+  rename('name'='AnimalName','gender'='AnimalGender','year'='AnimalBirthYear')%>%
+  mutate(name = stringr::str_to_title(name))%>%
+  filter(!(name %in% c('Unknown','Name Not Provided','None','Name','Not','Dog')))%>%
+  group_by(year, gender, name)%>%
+  summarize(n = n())%>%
+  filter(year>2010)%>%
+  group_by(gender, name)%>%
+  summarize(total_n = sum(n))%>%
+  mutate(rank = as.integer(rank(x = desc(total_n),ties.method = 'first')))%>%
+  ungroup()%>%
+  filter(rank<=25, gender=='M')%>%
+  select(rank, name, total_n)%>%
+  arrange(rank)%>%
+  ggplot(aes(x=forcats::fct_reorder(name,total_n),y=total_n, fill=desc(total_n)))+
+  geom_col()+
+  coord_flip()+
+  guides(fill=F)+
+  ylab('')+xlab('Number Since 2010')+
+  ggtitle('Top 25 Boy DOG Names in New York since 2010')
+dogs_boy
+```
+
+List the top 15 Female Dog names since 2010
+
+```{r}
+dogs_girl = 
+  dogs%>%
+  rename('name'='AnimalName','gender'='AnimalGender','year'='AnimalBirthYear')%>%
+  mutate(name = stringr::str_to_title(name))%>%
+  filter(!(name %in% c('Unknown','Name Not Provided','None','Name','Not','Dog')))%>%
+  group_by(year, gender, name)%>%
+  summarize(n = n())%>%
+  filter(year>2010)%>%
+  group_by(gender, name)%>%
+  summarize(total_n = sum(n))%>%
+  mutate(rank = as.integer(rank(x = desc(total_n),ties.method = 'first')))%>%
+  ungroup()%>%
+  filter(rank<=25, gender=='F')%>%
+  select(rank, name, total_n)%>%
+  arrange(rank)%>%
+  ggplot(aes(x=forcats::fct_reorder(name,total_n),y=total_n, fill=desc(total_n)))+
+  geom_col()+
+  coord_flip()+
+  guides(fill=F)+
+  ylab('')+xlab('Number Since 2010')+
+  ggtitle('Top 25 Girl DOG Names in New York since 2010')
+dogs_girl
+```
+
+#### Do dog parents name their dogs like their children?
+
+```{r}
+library(gridExtra)
+grid.arrange(boys, dogs_boy, girls, dogs_girl)
+```

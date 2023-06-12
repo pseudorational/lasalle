@@ -1,0 +1,228 @@
+---
+title: "Get Data"
+author: "&copy;  2023 Vishal Lala"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    toc-float: true
+    theme: cosmo
+    highlight-style: ally
+    df-print: paged
+    embed-resources: true
+  docx:
+    toc: true
+    toc-depth: 3
+    highlight-syle: ally
+  pdf:
+    toc: true
+    toc-depth: 3
+    documentclass: scrartcl
+    papersize: letter
+    highlight-syle: ally
+execute:
+  cache: true
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+# Getting Data
+
+1.  Download
+
+2.  read
+
+3.  API
+
+4.  Scrape
+
+
+## API
+
+### Financial Data
+Download stock price since Jan 1, 2010 for five Tech Stocks (fanga): Meta Group(META), Apple (AAPL), Netflix (NFLX), Alphabet (GOOG), and Amazon (AMZN). Display the first six rows of Alphabet stock.
+
+```{r warning=F, message=F}
+library(quantmod)
+fanga = getSymbols('FANGA',auto.assign = F)
+fanga
+```
+
+Get P/E Ratios for the above five Tech Stocks
+
+```{r}
+getQuote(Symbols = 'AAPL',src = 'yahoo',what = yahooQF(c('P/E Ratio')))
+```
+
+Financials (using tidyquant) List last six rows of stocks for the above five "fanga" stocks.
+
+```{r}
+library(tidyquant)
+fanga_stock = tq_get(      ,get = 'stock.prices')
+tail(fanga_stock)
+```
+
+### Wikipedia
+
+Get views of Richard Thaler's webpage on Wikedia, titled "Richard
+Thaler" from Jan 1, 2015 to Nov 11, 2021. Construct a line graph of the
+page views.
+
+```{r}
+library(pageviews)
+thaler = article_pageviews(project = 'en.wikipedia',article = 'Richard Thaler',start = '2015010100',end = '2021111100')
+
+library(ggplot2); library(dplyr); library(lubridate)
+thaler %>%
+  mutate(date = ymd(date),year = year(date), month = month(date))%>%
+  group_by(year, month)%>%
+  summarize(views = mean(views))%>%
+  ungroup()%>%
+  mutate(date = make_date(year = year, month = month,day = 1L))%>%
+  ggplot(aes(x=date,y=views))+
+  geom_point()+
+  geom_line()
+```
+
+### Google Trends
+
+Get Google Searches on Richard Thaler from Jan 1, 2015 to Nov 11, 2021.
+Construct a line graph of searches.
+
+```{r}
+library(gtrendsR)  
+thaler_google = gtrends(keyword = 'Richard Thaler',geo = c('US'), time = '2015-01-01 2021-11-11',tz = -300)
+
+library(ggplot2); library(dplyr); library(lubridate)
+thaler_google$interest_over_time%>%
+  mutate(date= ymd(date), year = year(date), month = month(date))%>%
+  group_by(year, month)%>%
+  summarize(hits = mean(hits))%>%
+  ungroup()%>%
+  mutate(date = make_date(year = year, month = month))%>%
+  ggplot(aes(x=date, y = hits))+
+  geom_point()+geom_line()
+```
+
+### Reddit
+
+Look up the keyword, "GME" on the infamous Wall Street Bets subreddit on
+Reddit.
+
+```{r}
+library(RedditExtractoR)
+gme = get_reddit()
+head(gme)
+```
+
+### itunes App Reviews
+
+itunes App Reviews
+
+```{r}
+#devtools::install_github("amrrs/itunesr")
+library(itunesr)
+lyft_reviews = data.frame()
+uber_reviews = data.frame()
+for (i in 1:5){
+  lyft_reviews = rbind(lyft_reviews, getReviews(529379082,'us',i))
+  uber_reviews = rbind(uber_reviews, getReviews(368677368,'us',i))
+}
+lyft_reviews %>%
+  mutate(Rating = as.integer(Rating))%>%
+  summarize(avg_rating = mean(Rating))
+lyft_reviews
+
+```
+
+### API List
+
+To find an API implemented in R, do a keyword search for API on [CRAN's
+list of available
+packages](https://cran.r-project.org/web/packages/available_packages_by_date.html).
+
+```{r}
+library(rvest)
+r_packages = read_html('https://cran.r-project.org/web/packages/available_packages_by_date.html')
+r_packages %>%
+  html_table()%>%
+  data.frame()%>%
+  filter(stringr::str_detect(string = Title, pattern = 'API'))
+```
+
+## Scrape
+
+Gathering data from a website involves 1. Getting the webpage file 2.
+Extracting elements 3. Reconstructing elements in a table or dataframe
+
+### List of APIs in R
+
+Available R packages are listed on
+[CRAN](https://cran.r-project.org/web/packages/available_packages_by_date.html).
+Begin by downloading the webpage
+
+```{r}
+library(rvest)
+
+```
+
+If the data to be gathered is in a table in html, it can be gathered
+using a simple function, html_table().
+
+```{r}
+
+```
+
+### Box Office Hits
+
+Read web page of [Box Office Hits from
+IMDB](https://www.imdb.com/chart/boxoffice/?ref_=nv_ch_cht). Inspect the
+web page.
+
+```{r}
+library(rvest)
+
+
+```
+
+Data is formatted as an html table, so one can use rvest::html_table().
+Use html_table() to extract the Box Office Hits table.
+
+```{r}
+
+
+```
+
+If that data was not formatted as a neat html table, one could identify
+CSS selectors for the data to extract. Here are three ways of finding
+CSS selectors 1. Examine html 2. Use inspect tool in Chrome 3. Use
+Selector Gadget chrome extension Visually scan the page and identify
+information to get. Next, find associated CSS tags for the information.
+One can do this by looking into the underlying html. However, an easier
+alternative is to use the [SelectorGadget](https://selectorgadget.com/)
+browser extension.
+
+Use html_nodes to extract relevant CSS tag followed by html_text() to
+extract text in the tag. Repeat for each column in the table (e.g.,
+title).
+
+```{r}
+title = 
+  top_box%>%
+  html_nodes()%>%
+  html_text()
+weekend = 
+  top_box%>%
+  html_nodes()%>%
+  html_text()
+gross = 
+  top_box %>%
+  html_nodes()%>%
+  html_text()
+weeks = 
+  top_box %>%
+  html_nodes('.weeksColumn')%>%
+  html_text()
+data.frame(title, weekend, gross, weeks)
+```

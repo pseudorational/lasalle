@@ -1,0 +1,5 @@
+"id","name","gender","age","love_fruits"
+1,"Rohan","Male",12,TRUE
+2,"Nikhil","Male",11,FALSE
+3,"Sharmila","Female",43,FALSE
+4,"Vishal","Male",46,TRUE
